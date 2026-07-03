@@ -1,0 +1,46 @@
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función de ayuda para verificar si un usuario está autenticado
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Función de ayuda para verificar si un usuario es el dueño del recurso
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Reglas para las fotos de perfil
+    match /profilePictures/{userId} {
+      // Cualquiera puede leer la foto de perfil (para mostrarla en la app)
+      allow read: if true;
+      
+      // Solo el dueño de la cuenta puede subir o actualizar su propia foto de perfil
+      // y el tamaño debe ser menor a 5MB
+      allow write: if isOwner(userId) && request.resource.size < 5 * 1024 * 1024;
+    }
+    
+    // Reglas para los archivos de las publicaciones (posts)
+    match /posts/{userId}/{allPaths=**} {
+        // Solo el dueño de la cuenta puede subir o modificar archivos en su carpeta de posts
+        allow write: if isOwner(userId);
+        
+        // Cualquiera puede leer los archivos de los posts (para ver las publicaciones)
+        allow read: if true;
+    }
+    
+    // Reglas para los archivos de las historias (stories)
+    match /stories/{userId}/{allPaths=**} {
+        // Solo el dueño de la cuenta puede subir o modificar archivos en su carpeta de stories
+        allow write: if isOwner(userId);
+        
+        // Solo los usuarios autenticados pueden leer las stories
+        // (En una app real, esto sería más complejo, por ej. solo seguidores)
+        allow read: if isSignedIn();
+    }
+  }
+}

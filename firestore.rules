@@ -1,0 +1,78 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow public read on user profiles
+    match /users/{userId} {
+      allow read;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Posts can be read by anyone, but only created/updated/deleted by the author
+    match /posts/{postId} {
+      allow read;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+    }
+
+    // Hashtags can be read by anyone, created by any logged-in user, and updated by anyone (for counts)
+    match /hashtags/{tag} {
+      allow read;
+      allow create, update: if request.auth != null;
+    }
+
+    // Stories can be read by anyone, but only created by the author
+    match /stories/{storyId} {
+      allow read;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+    }
+    
+    // Wall messages can be read by anyone, but created/deleted only by auth users.
+    match /wallMessages/{messageId} {
+      allow read;
+      allow create: if request.auth != null;
+      // Allow deletion only by the message author or the profile owner
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.author.uid || request.auth.uid == resource.data.profileId);
+    }
+    
+    // Notifications are private to the recipient
+    match /notifications/{notificationId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == resource.data.recipientId;
+    }
+
+    // Chats are private to members
+    match /chats/{chatId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid in resource.data.members;
+
+      // Messages within chats are also private to members
+      match /messages/{messageId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+      }
+    }
+    
+    // Z-Lives can be read by anyone, created/updated by logged-in users.
+    match /z-lives/{streamId} {
+      allow read;
+      allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.author.uid;
+    }
+    
+    // Admin-only collections
+    match /app_status/{statusId} {
+      allow read;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'alexander@gmail.com';
+    }
+    match /announcements/{announcementId} {
+      allow read;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'alexander@gmail.com';
+    }
+    match /events/{eventId} {
+      allow read;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'alexander@gmail.com';
+    }
+     match /moderation_logs/{logId} {
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'alexander@gmail.com';
+    }
+  }
+}

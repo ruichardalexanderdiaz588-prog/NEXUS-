@@ -1,0 +1,5 @@
+{
+  "name": "NEXUS",
+  "description": "Una red social exclusiva para jóvenes, centrada en la seguridad, la libertad de expresión y el apoyo emocional con IA.",
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
